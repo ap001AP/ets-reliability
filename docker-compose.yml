@@ -2,7 +2,9 @@
 
 services:
   db:
-    image: postgres:16
+    build:
+      context: .
+      dockerfile: Dockerfile.db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ets
