@@ -42,6 +42,22 @@ python -m gtfs_static.load --all --check
 
 `--check` prints row counts, the service-date range, and how many realtime trip, route and stop IDs match the schedule.
 
+### Stop passages
+
+Stop passage times come from GPS positions matched to each trip's route shape, not from the feed's stop-sequence field. That field proved unreliable: while a bus is between stops, ETS often reports the trip's final stop as the next stop, then snaps back at the next real stop (see `sql/diagnostics/passage_bias.sql`).
+
+1. Shapes and stops are projected to metres. Each stop is placed on the shape in trip order, so loop routes that pass the same corner twice stay in sequence.
+2. Each ping is placed on the shape within a window set by the previous ping and a 30 m/s speed limit. Pings more than 100 m from the route (deadheading, detours) are dropped, and small backwards GPS jitter is clamped.
+3. A stop's passage time is when the bus crosses 30 m past the stop, interpolated between the two pings on either side.
+
+Passages are joined to the schedule to get delay. Only crossings with pings 120 s apart or less count toward on-time performance (on time = 1 min early to 5 min late).
+
+```bash
+python -m analysis.build --check
+```
+
+`--check` reports the share of pings matched to the route, and compares inferred passage times with the departure times ETS itself reports for stops already passed.
+
 ## Tests
 
 ```bash
