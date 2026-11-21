@@ -2,7 +2,7 @@
 
 How reliable is Edmonton Transit, really? This project collects Edmonton Transit Service's live GTFS Realtime feeds, stores every bus position and arrival prediction in PostgreSQL, and measures on-time performance and bus bunching against the published schedule.
 
-**Status:** collecting data (Stage 1 of 3). Analysis and the Tableau dashboard come next.
+**Status:** collecting data; Stage 2 (analysis) in progress. The Tableau dashboard comes next.
 
 ## Stage 1 — Collector
 
@@ -31,6 +31,16 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m collector.inspect_feed
 ```
+
+## Stage 2 — Schedule
+
+The static GTFS zip archived by the collector is loaded into a versioned `gtfs` schema (one `feed_id` per snapshot, so schedule changes during the collection window are kept apart). `gtfs.service_days` expands the service calendar with holiday exceptions, and `gtfs.service_ts()` turns GTFS times (including times past 24:00) into real timestamps.
+
+```bash
+python -m gtfs_static.load --all --check
+```
+
+`--check` prints row counts, the service-date range, and how many realtime trip, route and stop IDs match the schedule.
 
 ## Tests
 
