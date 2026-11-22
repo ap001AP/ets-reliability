@@ -130,3 +130,45 @@ LEFT JOIN analysis.feed_by_date f ON f.service_date = e.schedule_date
 LEFT JOIN gtfs.routes r ON r.feed_id = f.feed_id AND r.route_id = e.route_id
 WHERE e.actual_headway_s > 0
 GROUP BY e.route_id;
+
+CREATE TABLE IF NOT EXISTS analysis.trip_status (
+    schedule_date    date        NOT NULL,
+    trip_id          text        NOT NULL,
+    route_id         text        NOT NULL,
+    direction_id     smallint,
+    scheduled_start  timestamptz NOT NULL,
+    scheduled_end    timestamptz NOT NULL,
+    stops_scheduled  integer     NOT NULL,
+    stops_observed   integer     NOT NULL,
+    tracked          boolean     NOT NULL,
+    cancelled        boolean     NOT NULL,
+    feed_coverage    numeric     NOT NULL,
+    status           text        NOT NULL,
+    PRIMARY KEY (schedule_date, trip_id)
+);
+CREATE INDEX IF NOT EXISTS trip_status_route_idx ON analysis.trip_status (route_id, schedule_date);
+ALTER TABLE analysis.trip_status DROP CONSTRAINT IF EXISTS trip_status_status_check;
+ALTER TABLE analysis.trip_status ADD CONSTRAINT trip_status_status_check
+    CHECK (status IN ('ran', 'partial', 'cancelled', 'tracked_not_matched', 'missing', 'not_in_feed', 'no_data'));
+
+DROP VIEW IF EXISTS analysis.delivery_by_route;
+
+CREATE VIEW analysis.delivery_by_route AS
+SELECT s.route_id,
+       max(r.route_short_name)                                                   AS route_short_name,
+       max(r.route_long_name)                                                    AS route_long_name,
+       count(*) FILTER (WHERE s.status NOT IN ('no_data', 'not_in_feed'))        AS trips_judged,
+       count(*) FILTER (WHERE s.status = 'ran')                                  AS ran,
+       count(*) FILTER (WHERE s.status = 'partial')                              AS partial,
+       count(*) FILTER (WHERE s.status = 'cancelled')                            AS cancelled,
+       count(*) FILTER (WHERE s.status = 'tracked_not_matched')                  AS tracked_not_matched,
+       count(*) FILTER (WHERE s.status = 'missing')                              AS missing,
+       count(*) FILTER (WHERE s.status = 'not_in_feed')                          AS not_in_feed,
+       round(100.0 * count(*) FILTER (WHERE s.status IN ('ran', 'partial'))
+             / nullif(count(*) FILTER (WHERE s.status NOT IN ('no_data', 'not_in_feed')), 0), 1) AS pct_delivered,
+       round(100.0 * count(*) FILTER (WHERE s.status = 'missing')
+             / nullif(count(*) FILTER (WHERE s.status NOT IN ('no_data', 'not_in_feed')), 0), 1) AS pct_missing
+FROM analysis.trip_status s
+LEFT JOIN analysis.feed_by_date f ON f.service_date = s.schedule_date
+LEFT JOIN gtfs.routes r ON r.feed_id = f.feed_id AND r.route_id = s.route_id
+GROUP BY s.route_id;

@@ -20,6 +20,7 @@ log = logging.getLogger("analysis")
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "sql" / "analysis_schema.sql"
 HEADWAYS_PATH = ROOT / "sql" / "headways.sql"
+TRIP_STATUS_PATH = ROOT / "sql" / "trip_status.sql"
 EDMONTON = ZoneInfo("America/Edmonton")
 
 
@@ -33,6 +34,31 @@ def build_headways(conn: psycopg.Connection, day: date) -> int:
         cur.execute(HEADWAYS_PATH.read_text(), {"d": day})
         n = cur.rowcount
         cur.execute("ANALYZE analysis.headways")
+        return n
+
+
+def sql_steps(sql: str) -> list[tuple[str, str]]:
+    steps = []
+    for block in sql.split("-- step: ")[1:]:
+        name, _, body = block.partition("\n")
+        steps.append((name.strip(), body.strip().rstrip(";")))
+    return steps
+
+
+def build_trip_status(conn: psycopg.Connection, day: date) -> int:
+    with conn.transaction(), conn.cursor() as cur:
+        cur.execute("DELETE FROM analysis.trip_status WHERE schedule_date = %s", (day,))
+        cur.execute("SELECT 1 FROM analysis.stop_passages WHERE schedule_date = %s LIMIT 1", (day,))
+        if cur.fetchone() is None:
+            return 0
+        cur.execute("SET LOCAL work_mem = '256MB'")
+        n = 0
+        for name, sql in sql_steps(TRIP_STATUS_PATH.read_text()):
+            t0 = time.perf_counter()
+            cur.execute(sql, {"d": day} if "%(d)s" in sql else None)
+            n = cur.rowcount
+            log.info("%s: trip status step '%s' %.1f s", day, name, time.perf_counter() - t0)
+        cur.execute("ANALYZE analysis.trip_status")
         return n
 
 
@@ -176,6 +202,43 @@ def check(conn: psycopg.Connection, date_from: date, date_to: date) -> None:
     )
 
     _print_rows(
+        "Trip delivery by schedule date (no_data = collector offline; not_in_feed = route never appears in the live feed)",
+        ["schedule_date", "scheduled", "no_data", "not_in_feed", "judged", "ran", "partial", "cancelled",
+         "tracked_not_matched", "missing", "pct_delivered", "pct_missing"],
+        conn.execute(
+            """
+            SELECT schedule_date, count(*),
+                   count(*) FILTER (WHERE status = 'no_data'),
+                   count(*) FILTER (WHERE status = 'not_in_feed'),
+                   count(*) FILTER (WHERE status NOT IN ('no_data', 'not_in_feed')),
+                   count(*) FILTER (WHERE status = 'ran'),
+                   count(*) FILTER (WHERE status = 'partial'),
+                   count(*) FILTER (WHERE status = 'cancelled'),
+                   count(*) FILTER (WHERE status = 'tracked_not_matched'),
+                   count(*) FILTER (WHERE status = 'missing'),
+                   round(100.0 * count(*) FILTER (WHERE status IN ('ran', 'partial'))
+                         / nullif(count(*) FILTER (WHERE status NOT IN ('no_data', 'not_in_feed')), 0), 1)::float8,
+                   round(100.0 * count(*) FILTER (WHERE status = 'missing')
+                         / nullif(count(*) FILTER (WHERE status NOT IN ('no_data', 'not_in_feed')), 0), 1)::float8
+            FROM analysis.trip_status
+            WHERE schedule_date BETWEEN %(date_from)s AND %(date_to)s
+            GROUP BY schedule_date ORDER BY schedule_date
+            """, p).fetchall(),
+    )
+
+    _print_rows(
+        "Routes with the most missing trips (>= 20 trips judged, all dates)",
+        ["route", "name", "judged", "missing", "cancelled", "pct_missing", "pct_delivered"],
+        conn.execute(
+            """
+            SELECT route_short_name, left(route_long_name, 40), trips_judged, missing, cancelled,
+                   pct_missing::float8, pct_delivered::float8
+            FROM analysis.delivery_by_route WHERE trips_judged >= 20
+            ORDER BY pct_missing DESC, missing DESC LIMIT 8
+            """).fetchall(),
+    )
+
+    _print_rows(
         "Excluded events",
         ["status", "events"],
         conn.execute(
@@ -230,6 +293,10 @@ def main() -> None:
                 n = build_headways(conn, day)
                 if n:
                     log.info("%s: %s headways (%.1f s)", day, f"{n:,}", time.perf_counter() - t0)
+                t0 = time.perf_counter()
+                n = build_trip_status(conn, day)
+                if n:
+                    log.info("%s: %s scheduled trips classified (%.1f s)", day, f"{n:,}", time.perf_counter() - t0)
                 day += timedelta(days=1)
 
         if args.check or args.check_only:

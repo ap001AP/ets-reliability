@@ -64,6 +64,10 @@ For every observed bus at every stop, `analysis.headways` compares the actual ga
 
 If a tracked bus has no recorded passage at a stop, the pair around it is dropped rather than counted as a false gap. Trips that never appeared at all stay in, because riders did wait through those gaps.
 
+### Ghost buses
+
+`analysis.trip_status` gives every scheduled trip one status: **ran** (observed at half its stops or more), **partial**, **cancelled** (announced in the trip-update feed), **tracked_not_matched** (in the vehicle feed but never matched to stops on its route), **missing** (scheduled, never seen, never announced), or **no_data**. A trip is only judged if the collector received at least 80% of expected vehicle polls during its scheduled time, so collector downtime and ETS feed outages are never counted as ghost buses.
+
 ## Tests
 
 ```bash
