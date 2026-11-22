@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS analysis.stop_passages (
 );
 ALTER TABLE analysis.stop_passages ADD COLUMN IF NOT EXISTS schedule_date date;
 
+CREATE INDEX IF NOT EXISTS stop_passages_schedule_idx ON analysis.stop_passages (schedule_date, trip_id, stop_sequence);
 CREATE INDEX IF NOT EXISTS stop_passages_route_idx ON analysis.stop_passages (route_id, service_date);
 CREATE INDEX IF NOT EXISTS stop_passages_stop_idx ON analysis.stop_passages (stop_id, observed_ts);
 
@@ -78,4 +79,54 @@ SELECT e.route_id,
 FROM analysis.stop_events e
 LEFT JOIN gtfs.routes r ON r.feed_id = e.feed_id AND r.route_id = e.route_id
 WHERE e.status IN ('on_time', 'early', 'late')
+GROUP BY e.route_id;
+
+CREATE TABLE IF NOT EXISTS analysis.headways (
+    schedule_date        date        NOT NULL,
+    route_id             text        NOT NULL,
+    direction_id         smallint,
+    stop_id              text        NOT NULL,
+    trip_id              text        NOT NULL,
+    stop_sequence        integer     NOT NULL,
+    prev_trip_id         text        NOT NULL,
+    observed_ts          timestamptz NOT NULL,
+    actual_headway_s     integer     NOT NULL,
+    scheduled_headway_s  integer,
+    data_gap             boolean     NOT NULL,
+    PRIMARY KEY (schedule_date, trip_id, stop_sequence)
+);
+CREATE INDEX IF NOT EXISTS headways_route_idx ON analysis.headways (route_id, schedule_date);
+
+DROP VIEW IF EXISTS analysis.bunching_by_route;
+DROP VIEW IF EXISTS analysis.headway_events;
+
+CREATE VIEW analysis.headway_events AS
+SELECT h.*,
+       h.actual_headway_s::float8 / h.scheduled_headway_s                     AS headway_ratio,
+       extract(hour FROM h.observed_ts AT TIME ZONE 'America/Edmonton')::int  AS local_hour,
+       extract(isodow FROM h.schedule_date)::int                              AS iso_dow,
+       CASE
+           WHEN h.actual_headway_s < 0.25 * h.scheduled_headway_s THEN 'bunched'
+           WHEN h.actual_headway_s > 1.5 * h.scheduled_headway_s  THEN 'gap'
+           ELSE 'regular'
+       END AS spacing
+FROM analysis.headways h
+WHERE NOT h.data_gap
+  AND h.scheduled_headway_s BETWEEN 60 AND 900;
+
+CREATE VIEW analysis.bunching_by_route AS
+SELECT e.route_id,
+       max(r.route_short_name)                                            AS route_short_name,
+       max(r.route_long_name)                                             AS route_long_name,
+       count(*)                                                           AS events,
+       round(100.0 * avg((e.spacing = 'bunched')::int), 1)                AS pct_bunched,
+       round(100.0 * avg((e.spacing = 'gap')::int), 1)                    AS pct_gap,
+       round((stddev_samp(e.actual_headway_s - e.scheduled_headway_s)
+              / nullif(avg(e.scheduled_headway_s), 0))::numeric, 2)       AS headway_cv,
+       round((sum(e.actual_headway_s::float8 ^ 2) / (2 * sum(e.actual_headway_s))
+              - sum(e.scheduled_headway_s::float8 ^ 2) / (2 * sum(e.scheduled_headway_s)))::numeric) AS excess_wait_s
+FROM analysis.headway_events e
+LEFT JOIN analysis.feed_by_date f ON f.service_date = e.schedule_date
+LEFT JOIN gtfs.routes r ON r.feed_id = f.feed_id AND r.route_id = e.route_id
+WHERE e.actual_headway_s > 0
 GROUP BY e.route_id;

@@ -55,7 +55,7 @@ def report(name: str, url: str, cfg: Config, session: requests.Session) -> None:
 
 def main() -> None:
     cfg = Config.from_env()
-    session = requests.Session()
+    session = feeds.make_session()
     report("vehicle_positions", cfg.vehicle_positions_url, cfg, session)
     report("trip_updates", cfg.trip_updates_url, cfg, session)
     report("alerts", cfg.alerts_url, cfg, session)

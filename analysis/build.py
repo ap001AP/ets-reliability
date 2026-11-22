@@ -19,7 +19,21 @@ log = logging.getLogger("analysis")
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "sql" / "analysis_schema.sql"
+HEADWAYS_PATH = ROOT / "sql" / "headways.sql"
 EDMONTON = ZoneInfo("America/Edmonton")
+
+
+def build_headways(conn: psycopg.Connection, day: date) -> int:
+    with conn.transaction(), conn.cursor() as cur:
+        cur.execute("DELETE FROM analysis.headways WHERE schedule_date = %s", (day,))
+        cur.execute("SELECT 1 FROM analysis.stop_passages WHERE schedule_date = %s LIMIT 1", (day,))
+        if cur.fetchone() is None:
+            return 0
+        cur.execute("SET LOCAL work_mem = '256MB'")
+        cur.execute(HEADWAYS_PATH.read_text(), {"d": day})
+        n = cur.rowcount
+        cur.execute("ANALYZE analysis.headways")
+        return n
 
 
 def _print_rows(title: str, cols: list[str], rows: list[tuple]) -> None:
@@ -130,6 +144,38 @@ def check(conn: psycopg.Connection, date_from: date, date_to: date) -> None:
                 conn.execute(route_sql.format(order="DESC")).fetchall())
 
     _print_rows(
+        "Bunching on frequent service (scheduled headway <= 15 min)",
+        ["events", "pct_bunched", "pct_gap", "headway_cv", "excess_wait_s", "pct_pairs_dropped_for_data_gaps"],
+        conn.execute(
+            """
+            WITH e AS (
+                SELECT * FROM analysis.headway_events
+                WHERE schedule_date BETWEEN %(date_from)s AND %(date_to)s AND actual_headway_s > 0
+            )
+            SELECT count(*),
+                   round(100.0 * avg((spacing = 'bunched')::int), 1)::float8,
+                   round(100.0 * avg((spacing = 'gap')::int), 1)::float8,
+                   round((stddev_samp(actual_headway_s - scheduled_headway_s) / nullif(avg(scheduled_headway_s), 0))::numeric, 2)::float8,
+                   round((sum(actual_headway_s::float8 ^ 2) / (2 * sum(actual_headway_s))
+                          - sum(scheduled_headway_s::float8 ^ 2) / (2 * sum(scheduled_headway_s)))::numeric)::float8,
+                   (SELECT round(100.0 * avg(data_gap::int), 1)::float8 FROM analysis.headways
+                    WHERE schedule_date BETWEEN %(date_from)s AND %(date_to)s AND scheduled_headway_s BETWEEN 60 AND 900)
+            FROM e
+            """, p).fetchall(),
+    )
+
+    _print_rows(
+        "Most bunched frequent routes (>= 200 events, all dates)",
+        ["route", "name", "events", "pct_bunched", "pct_gap", "headway_cv", "excess_wait_s"],
+        conn.execute(
+            """
+            SELECT route_short_name, left(route_long_name, 40), events, pct_bunched::float8, pct_gap::float8,
+                   headway_cv::float8, excess_wait_s::float8
+            FROM analysis.bunching_by_route WHERE events >= 200 ORDER BY pct_bunched DESC LIMIT 5
+            """).fetchall(),
+    )
+
+    _print_rows(
         "Excluded events",
         ["status", "events"],
         conn.execute(
@@ -176,6 +222,14 @@ def main() -> None:
                     100 * st.pings_on_route / st.pings if st.pings else 0, f"{st.pings:,}",
                     st.stops_far_from_shape, time.perf_counter() - t0,
                 )
+                day += timedelta(days=1)
+
+            day = date_from - timedelta(days=1)
+            while day <= date_to:
+                t0 = time.perf_counter()
+                n = build_headways(conn, day)
+                if n:
+                    log.info("%s: %s headways (%.1f s)", day, f"{n:,}", time.perf_counter() - t0)
                 day += timedelta(days=1)
 
         if args.check or args.check_only:

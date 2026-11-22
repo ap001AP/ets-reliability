@@ -93,3 +93,43 @@ def test_parse_roundtrip():
     msg = new_feed()
     add_vehicle(msg, "4501", HEADER_TS)
     assert len(feeds.parse(msg.SerializeToString()).entity) == 1
+
+
+def test_session_retries_dropped_connections_once_or_twice():
+    import http.server
+    import socket
+    import threading
+
+    hits = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            hits.append(1)
+            if len(hits) == 1:
+                self.connection.shutdown(socket.SHUT_RDWR)
+                return
+            body = new_feed().SerializeToString()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        session = feeds.make_session()
+        session.trust_env = False
+        result = feeds.fetch(session, "vehicle_positions", f"http://127.0.0.1:{server.server_port}/vp.pb", timeout=5)
+    finally:
+        server.shutdown()
+    assert result.error is None and result.http_status == 200
+    assert len(hits) == 2
+
+
+def test_session_does_not_retry_http_errors():
+    adapter = feeds.make_session().get_adapter("http://example")
+    assert adapter.max_retries.status == 0
+    assert adapter.max_retries.connect == 2

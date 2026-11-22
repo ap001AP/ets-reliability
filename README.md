@@ -58,6 +58,12 @@ python -m analysis.build --check
 
 `--check` reports the share of pings matched to the route, and compares inferred passage times with the departure times ETS itself reports for stops already passed.
 
+### Bus bunching
+
+For every observed bus at every stop, `analysis.headways` compares the actual gap to the previous bus (same route, direction and stop) with that trip's scheduled gap. On frequent service (scheduled every 15 minutes or better), a bus is **bunched** if it arrives within 25% of the scheduled gap and leaves a **gap** if it arrives more than 150% of it later. Routes are also scored on headway variability and **excess wait time**: the extra average wait riders face because buses are unevenly spaced.
+
+If a tracked bus has no recorded passage at a stop, the pair around it is dropped rather than counted as a false gap. Trips that never appeared at all stay in, because riders did wait through those gaps.
+
 ## Tests
 
 ```bash

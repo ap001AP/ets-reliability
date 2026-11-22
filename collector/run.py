@@ -106,8 +106,7 @@ def run(cfg: Config, once: bool = False) -> None:
     signal.signal(signal.SIGINT, lambda *_: stop.set())
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
 
-    session = requests.Session()
-    session.headers["User-Agent"] = "ets-reliability-collector/1.0"
+    session = feeds.make_session()
 
     jobs = [
         Job("vehicle_positions", cfg.vehicle_positions_url, cfg.realtime_interval_s),

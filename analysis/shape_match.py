@@ -293,4 +293,5 @@ def build_day(conn: psycopg.Connection, day: date) -> DayStats:
             while chunk := rows.read(1 << 20):
                 copy.write(chunk)
         cur.execute(INSERT_SQL)
+        cur.execute("ANALYZE analysis.stop_passages")
     return stats

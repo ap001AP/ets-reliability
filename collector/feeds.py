@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from google.transit import gtfs_realtime_pb2 as pb
 
 
@@ -19,6 +21,17 @@ class FetchResult:
     latency_ms: int | None
     content: bytes | None
     error: str | None
+
+
+def make_session(user_agent: str = "ets-reliability-collector/1.0") -> requests.Session:
+    retry = Retry(total=2, connect=2, read=2, status=0, backoff_factor=0.5,
+                  allowed_methods=frozenset({"GET"}), raise_on_status=False)
+    session = requests.Session()
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    session.headers["User-Agent"] = user_agent
+    return session
 
 
 def fetch(session: requests.Session, feed: str, url: str, timeout: float = 15.0) -> FetchResult:
