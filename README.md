@@ -74,6 +74,14 @@ If a tracked bus has no recorded passage at a stop, the pair around it is droppe
 
 `analysis.trip_status` gives every scheduled trip one status: **ran** (observed at half its stops or more), **partial**, **cancelled** (announced in the trip-update feed), **tracked_not_matched** (in the vehicle feed but never matched to stops on its route), **missing** (scheduled, never seen, never announced), or **no_data**. A trip is only judged if the collector received at least 80% of expected vehicle polls during its scheduled time, so collector downtime and ETS feed outages are never counted as ghost buses.
 
+## Stage 3 — Tableau extracts
+
+```bash
+python -m analysis.export
+```
+
+Writes ETS-only CSVs to `exports/` (network by day, routes, route × weekday × hour, stops with coordinates, route lines, bus spacing at timepoints and transit centres, and every scheduled trip's delivery status), plus a partner-agency summary and a generated data dictionary in [`exports/README.md`](exports/README.md). Each file carries counts alongside percentages so Tableau can aggregate correctly. The CSVs are regenerated rather than committed.
+
 ## Data quality
 
 [`docs/data_quality.md`](docs/data_quality.md) covers feed availability and every outage, field completeness, schedule consistency, validation of the passage method against ETS's own departure times, and each data issue found with how it was handled. Regenerate it with:
