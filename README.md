@@ -47,8 +47,8 @@ python -m gtfs_static.load --all --check
 Stop passage times come from GPS positions matched to each trip's route shape, not from the feed's stop-sequence field. That field proved unreliable: while a bus is between stops, ETS often reports the trip's final stop as the next stop, then snaps back at the next real stop (see `sql/diagnostics/passage_bias.sql`).
 
 1. Shapes and stops are projected to metres. Each stop is placed on the shape in trip order, so loop routes that pass the same corner twice stay in sequence.
-2. Each ping is placed on the shape within a window set by the previous ping and a 30 m/s speed limit. Pings more than 100 m from the route (deadheading, detours) are dropped, and small backwards GPS jitter is clamped.
-3. A stop's passage time is when the bus crosses 30 m past the stop, interpolated between the two pings on either side.
+2. Each ping is placed on the shape within a window set by the previous ping and a 30 m/s speed limit. Pings more than 100 m from the route (deadheading, detours) are dropped, and small backwards GPS jitter is clamped. If three pings in a row are on the route but behind the current position (a bus laying over at the end of a loop before starting its trip), the match restarts.
+3. A stop's departure time is when the bus crosses 30 m past the stop, interpolated between the two pings on either side. A bus first seen waiting up to 300 m past its first stop departs when it pulls away. The final stop records an arrival instead, used for trip delivery and spacing but not for on-time performance.
 
 Passages are joined to the schedule to get delay. Only crossings with pings 120 s apart or less count toward on-time performance (on time = 1 min early to 5 min late).
 
@@ -67,6 +67,14 @@ If a tracked bus has no recorded passage at a stop, the pair around it is droppe
 ### Ghost buses
 
 `analysis.trip_status` gives every scheduled trip one status: **ran** (observed at half its stops or more), **partial**, **cancelled** (announced in the trip-update feed), **tracked_not_matched** (in the vehicle feed but never matched to stops on its route), **missing** (scheduled, never seen, never announced), or **no_data**. A trip is only judged if the collector received at least 80% of expected vehicle polls during its scheduled time, so collector downtime and ETS feed outages are never counted as ghost buses.
+
+## Data quality
+
+[`docs/data_quality.md`](docs/data_quality.md) covers feed availability and every outage, field completeness, schedule consistency, validation of the passage method against ETS's own departure times, and each data issue found with how it was handled. Regenerate it with:
+
+```bash
+python -m analysis.quality
+```
 
 ## Tests
 

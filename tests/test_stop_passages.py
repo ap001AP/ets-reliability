@@ -74,8 +74,8 @@ def world(pg, tmp_path):
     return pg
 
 
-def expected_time(t0: str, y0: float, y1: float, stop_y: float) -> datetime:
-    frac = (stop_y + shape_match.DEPART_OFFSET_M - y0) / (y1 - y0)
+def expected_time(t0: str, y0: float, y1: float, stop_y: float, offset: float = shape_match.DEPART_OFFSET_M) -> datetime:
+    frac = (stop_y + offset - y0) / (y1 - y0)
     return local(t0) + timedelta(seconds=30 * frac)
 
 
@@ -88,15 +88,17 @@ def test_build_day_times_each_stop_from_gps(world):
     assert stats.trips_seen == 2 and stats.passages == 5
     assert stats.pings == 9 and stats.pings_on_route == 8
     rows = world.execute(
-        "SELECT stop_sequence, observed_ts, window_s, stops_in_window, delay_s, stop_id "
+        "SELECT stop_sequence, observed_ts, window_s, stops_in_window, delay_s, stop_id, event "
         "FROM analysis.stop_passages WHERE trip_id = 'T1' ORDER BY stop_sequence"
     ).fetchall()
     expected = [
         expected_time("08:00:30", 0, 240, STOP_Y[0]),
         expected_time("08:01:00", 240, 480, STOP_Y[1]),
         expected_time("08:01:00", 240, 480, STOP_Y[2]),
-        expected_time("08:01:30", 480, 720, STOP_Y[3]),
+        expected_time("08:01:30", 480, 720, STOP_Y[3], -shape_match.ARRIVE_OFFSET_M),
     ]
+    assert [r[6] for r in rows] == ["departure", "departure", "departure", "arrival"]
+    rows = [r[:6] for r in rows]
     assert [r[0] for r in rows] == [1, 2, 3, 4]
     for (seq, observed, window, n, delay, stop_id), exp in zip(rows, expected):
         assert abs((observed - exp).total_seconds()) < 0.5
@@ -137,8 +139,7 @@ def test_stop_events_classify(world):
     rows = world.execute(
         "SELECT trip_id, stop_sequence, status FROM analysis.stop_events ORDER BY trip_id, stop_sequence"
     ).fetchall()
-    assert rows == [("T1", 1, "on_time"), ("T1", 2, "on_time"), ("T1", 3, "on_time"),
-                    ("T1", 4, "early"), ("T2", 3, "on_time")]
+    assert rows == [("T1", 1, "on_time"), ("T1", 2, "on_time"), ("T1", 3, "on_time"), ("T2", 3, "on_time")]
 
 
 def test_check_report_runs(world, capsys):

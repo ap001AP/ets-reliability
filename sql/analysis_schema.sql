@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS analysis.stop_passages (
     PRIMARY KEY (service_date, trip_id, stop_sequence)
 );
 ALTER TABLE analysis.stop_passages ADD COLUMN IF NOT EXISTS schedule_date date;
+ALTER TABLE analysis.stop_passages ADD COLUMN IF NOT EXISTS event text NOT NULL DEFAULT 'departure';
 
 CREATE INDEX IF NOT EXISTS stop_passages_schedule_idx ON analysis.stop_passages (schedule_date, trip_id, stop_sequence);
 CREATE INDEX IF NOT EXISTS stop_passages_route_idx ON analysis.stop_passages (route_id, service_date);
@@ -62,7 +63,8 @@ SELECT p.*,
            ELSE 'on_time'
        END AS status
 FROM analysis.stop_passages p
-WHERE p.window_s <= 120;
+WHERE p.window_s <= 120
+  AND p.event = 'departure';
 
 CREATE VIEW analysis.otp_by_route AS
 SELECT e.route_id,

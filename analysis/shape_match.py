@@ -21,6 +21,10 @@ MAX_OFFROUTE_M = 100.0
 MAX_SPEED_MPS = 30.0
 BACKTRACK_M = 50.0
 TIE_TOL_M = 25.0
+RESET_AFTER = 3
+ARRIVE_OFFSET_M = 15.0
+FIRST_STOP_WAIT_M = 300.0
+STATIONARY_M = 20.0
 
 
 def to_xy(lat, lon) -> np.ndarray:
@@ -82,52 +86,87 @@ def locate_stops(shape: Shape, stop_xy: np.ndarray) -> tuple[np.ndarray, np.ndar
     return out, offset
 
 
-def locate_pings(shape: Shape, ping_xy: np.ndarray, t: np.ndarray) -> np.ndarray:
+def locate_pings(shape: Shape, ping_xy: np.ndarray, t: np.ndarray, reset_after: int = RESET_AFTER) -> np.ndarray:
     along, dist = project(shape, ping_xy)
-    out = np.full(len(ping_xy), np.nan)
+    n = len(ping_xy)
+    out = np.full(n, np.nan)
     prev_a = prev_t = None
-    for i in range(len(ping_xy)):
+    placed: list[int] = []
+    misses: list[int] = []
+    i = 0
+    while i < n:
         if prev_a is None:
             mask = np.ones(along.shape[1], dtype=bool)
         else:
             hi = prev_a + MAX_SPEED_MPS * max(t[i] - prev_t, 0.0) + 100.0
             mask = (along[i] >= prev_a - BACKTRACK_M) & (along[i] <= hi)
-        if not mask.any():
+        if mask.any() and dist[i][mask].min() <= MAX_OFFROUTE_M:
+            dmin = dist[i][mask].min()
+            if prev_a is None:
+                cand = mask & (dist[i] <= dmin + TIE_TOL_M)
+                a = along[i][cand].min()
+            else:
+                a = max(along[i][mask][np.argmin(dist[i][mask])], prev_a)
+            out[i] = a
+            placed.append(i)
+            misses = []
+            prev_a, prev_t = a, t[i]
+            i += 1
             continue
-        dmin = dist[i][mask].min()
-        if dmin > MAX_OFFROUTE_M:
-            continue
-        if prev_a is None:
-            cand = mask & (dist[i] <= dmin + TIE_TOL_M)
-            a = along[i][cand].min()
-        else:
-            a = along[i][mask][np.argmin(dist[i][mask])]
-            a = max(a, prev_a)
-        out[i] = a
-        prev_a, prev_t = a, t[i]
+        if prev_a is not None and dist[i].min() <= MAX_OFFROUTE_M:
+            misses.append(i)
+            if len(misses) >= reset_after:
+                restart = placed[0] + 1
+                out[placed] = np.nan
+                placed = []
+                prev_a = prev_t = None
+                i = restart
+                misses = []
+                continue
+        i += 1
     return out
 
 
+def _cross(t: np.ndarray, a: np.ndarray, target: float) -> tuple[float, float, float, float] | None:
+    j = int(np.searchsorted(a, target, side="left"))
+    if j == 0 or j >= len(a):
+        return None
+    i = j - 1
+    span = a[j] - a[i]
+    if span <= 0:
+        return None
+    when = t[i] + (target - a[i]) / span * (t[j] - t[i])
+    return float(when), float(t[j] - t[i]), float(a[i]), float(a[j])
+
+
 def crossings(ping_t: np.ndarray, ping_a: np.ndarray, stop_a: np.ndarray,
-              offset_m: float = DEPART_OFFSET_M) -> list[tuple[int, float, float, int]]:
+              offset_m: float = DEPART_OFFSET_M) -> list[tuple[int, float, float, int, str]]:
     ok = ~np.isnan(ping_a)
     t, a = ping_t[ok], ping_a[ok]
-    if len(a) < 2:
+    if len(a) < 2 or len(stop_a) == 0:
         return []
-    targets = stop_a + offset_m
+    last = len(stop_a) - 1
+    targets = np.empty(len(stop_a))
+    events = []
+    for k in range(len(stop_a)):
+        if k == last and last > 0:
+            targets[k] = stop_a[k] - ARRIVE_OFFSET_M
+            events.append("arrival")
+        else:
+            targets[k] = stop_a[k] + offset_m
+            events.append("departure")
+    waiting_past_first = (a[0] >= targets[0] and a[0] - stop_a[0] <= FIRST_STOP_WAIT_M
+                          and a[1] - a[0] <= STATIONARY_M)
+    if waiting_past_first:
+        targets[0] = a[0] + offset_m
     out = []
     for k, target in enumerate(targets):
-        j = int(np.searchsorted(a, target, side="left"))
-        if j == 0 or j >= len(a):
+        hit = _cross(t, a, target)
+        if hit is None:
             continue
-        i = j - 1
-        span = a[j] - a[i]
-        if span <= 0:
-            continue
-        frac = (target - a[i]) / span
-        when = t[i] + frac * (t[j] - t[i])
-        n = int(((targets > a[i]) & (targets <= a[j])).sum())
-        out.append((k, float(when), float(t[j] - t[i]), n))
+        when, window, lo, hi = hit
+        n = int(((targets > lo) & (targets <= hi)).sum())
+        out.append((k, when, window, n, events[k]))
     return out
 
 
@@ -171,14 +210,16 @@ CREATE TEMP TABLE passage_stage (
     vehicle_id       text,
     observed_epoch   float8,
     window_s         integer,
-    stops_in_window  integer
+    stops_in_window  integer,
+    event            text
 ) ON COMMIT DROP
 """
 
 INSERT_SQL = """
 WITH joined AS (
     SELECT s.*, t.route_id, t.direction_id, st.stop_id, st.timepoint,
-           coalesce(st.departure_s, st.arrival_s) AS scheduled_s
+           CASE WHEN s.event = 'arrival' THEN coalesce(st.arrival_s, st.departure_s)
+                ELSE coalesce(st.departure_s, st.arrival_s) END AS scheduled_s
     FROM passage_stage s
     JOIN gtfs.trips t ON t.feed_id = s.feed_id AND t.trip_id = s.trip_id
     JOIN gtfs.stop_times st ON st.feed_id = s.feed_id AND st.trip_id = s.trip_id AND st.stop_sequence = s.stop_sequence
@@ -195,10 +236,10 @@ dated AS (
 )
 INSERT INTO analysis.stop_passages
     (service_date, trip_id, stop_sequence, feed_id, vehicle_id, route_id, direction_id, stop_id,
-     timepoint, observed_ts, window_s, stops_in_window, schedule_date, scheduled_ts, delay_s)
+     timepoint, observed_ts, window_s, stops_in_window, event, schedule_date, scheduled_ts, delay_s)
 SELECT DISTINCT ON (service_date, trip_id, stop_sequence)
        service_date, trip_id, stop_sequence, feed_id, vehicle_id, route_id, direction_id, stop_id,
-       timepoint, to_timestamp(observed_epoch), window_s, stops_in_window, schedule_date, scheduled_ts,
+       timepoint, to_timestamp(observed_epoch), window_s, stops_in_window, event, schedule_date, scheduled_ts,
        round(observed_epoch - extract(epoch FROM scheduled_ts))::int
 FROM dated
 ORDER BY service_date, trip_id, stop_sequence, window_s
@@ -261,8 +302,8 @@ def build_day(conn: psycopg.Connection, day: date) -> DayStats:
         found = crossings(t_arr, ping_a, stop_a)
         if found:
             stats.trips_matched += 1
-        for k, when, window, n in found:
-            rows.write(f"{day}\t{trip_id}\t{seqs[k]}\t{feed_id}\t{vehicle_id}\t{when:.3f}\t{round(window)}\t{n}\n")
+        for k, when, window, n, event in found:
+            rows.write(f"{day}\t{trip_id}\t{seqs[k]}\t{feed_id}\t{vehicle_id}\t{when:.3f}\t{round(window)}\t{n}\t{event}\n")
             stats.passages += 1
 
     current = None
