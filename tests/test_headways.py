@@ -108,4 +108,4 @@ def test_rebuild_is_idempotent(world):
 def test_check_report_includes_bunching(world, capsys):
     build.build_headways(world, DAY)
     build.check(world, DAY, DAY)
-    assert "Bunching on frequent service" in capsys.readouterr().out
+    assert "Bunching on frequent ETS service" in capsys.readouterr().out

@@ -28,6 +28,7 @@ SCHEMA_PATH = ROOT / "sql" / "gtfs_schema.sql"
 TEXT, INT, FLOAT, DATE = "text", "int", "float", "date"
 
 TABLES: dict[str, dict[str, str]] = {
+    "agency": {"agency_id": TEXT, "agency_name": TEXT, "agency_url": TEXT, "agency_timezone": TEXT},
     "routes": {
         "route_id": TEXT, "agency_id": TEXT, "route_short_name": TEXT, "route_long_name": TEXT,
         "route_desc": TEXT, "route_type": INT, "route_color": TEXT, "route_text_color": TEXT,
@@ -131,6 +132,32 @@ def read_rows(zf: zipfile.ZipFile, member: str, table: str):
         yield columns, ignored, rows()
 
 
+def copy_table(cur: psycopg.Cursor, zf: zipfile.ZipFile, member: str, table: str, feed_id: str) -> TableLoad:
+    with read_rows(zf, member, table) as (columns, ignored, rows):
+        result = TableLoad(table, ignored_columns=ignored)
+        with cur.copy(f"COPY gtfs.{table} (feed_id, {', '.join(columns)}) FROM STDIN") as copy:
+            for row in rows:
+                copy.write_row([feed_id, *row])
+                result.rows += 1
+    return result
+
+
+def backfill_tables(conn: psycopg.Connection, zf: zipfile.ZipFile, feed_id: str) -> list[TableLoad]:
+    loads = []
+    with conn.transaction(), conn.cursor() as cur:
+        for table in TABLES:
+            member = _member(zf, table)
+            if not member:
+                continue
+            cur.execute(f"SELECT 1 FROM gtfs.{table} WHERE feed_id = %s LIMIT 1", (feed_id,))
+            if cur.fetchone():
+                continue
+            result = copy_table(cur, zf, member, table, feed_id)
+            loads.append(result)
+            log.info("%s: backfilled %s rows into already-loaded feed %s", table, f"{result.rows:,}", feed_id)
+    return loads
+
+
 def _fetched_at(conn: psycopg.Connection, sha: str, path: Path) -> datetime:
     if conn.execute("SELECT to_regclass('rt.static_snapshots')").fetchone()[0]:
         row = conn.execute("SELECT fetched_at FROM rt.static_snapshots WHERE sha256 = %s", (sha,)).fetchone()
@@ -162,11 +189,12 @@ def load_feed(conn: psycopg.Connection, path: Path) -> tuple[str, list[TableLoad
     content = path.read_bytes()
     sha = hashlib.sha256(content).hexdigest()
     feed_id = sha[:10]
+    zf = zipfile.ZipFile(io.BytesIO(content))
     if conn.execute("SELECT 1 FROM gtfs.feeds WHERE sha256 = %s", (sha,)).fetchone():
+        backfill_tables(conn, zf, feed_id)
         log.info("%s already loaded as feed %s", path.name, feed_id)
         return None
 
-    zf = zipfile.ZipFile(io.BytesIO(content))
     missing = [t for t in REQUIRED if not _member(zf, t)]
     if missing:
         raise FeedError(f"{path.name} is missing {', '.join(t + '.txt' for t in missing)}")
@@ -186,15 +214,10 @@ def load_feed(conn: psycopg.Connection, path: Path) -> tuple[str, list[TableLoad
             member = _member(zf, table)
             if not member:
                 continue
-            with read_rows(zf, member, table) as (columns, ignored, rows):
-                result = TableLoad(table, ignored_columns=ignored)
-                with cur.copy(f"COPY gtfs.{table} (feed_id, {', '.join(columns)}) FROM STDIN") as copy:
-                    for row in rows:
-                        copy.write_row([feed_id, *row])
-                        result.rows += 1
+            result = copy_table(cur, zf, member, table, feed_id)
             loads.append(result)
             log.info("%s: %s rows%s", table, f"{result.rows:,}",
-                     f" (ignored columns: {', '.join(ignored)})" if ignored else "")
+                     f" (ignored columns: {', '.join(result.ignored_columns)})" if result.ignored_columns else "")
     return feed_id, loads
 
 

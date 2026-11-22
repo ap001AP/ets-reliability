@@ -23,6 +23,20 @@ ORDER BY service_date,
          fetched_by_day_end DESC,
          CASE WHEN fetched_by_day_end THEN -extract(epoch FROM fetched_at) ELSE extract(epoch FROM fetched_at) END;
 
+CREATE OR REPLACE VIEW analysis.route_agency AS
+SELECT r.feed_id, r.route_id, r.agency_id, a.agency_name,
+       CASE
+           WHEN a.agency_name IS NOT NULL THEN a.agency_name ILIKE '%Edmonton Transit%'
+           WHEN r.agency_id IS NOT NULL THEN r.agency_id = '1'
+           ELSE true
+       END AS is_ets
+FROM gtfs.routes r
+LEFT JOIN LATERAL (
+    SELECT ag.agency_name FROM gtfs.agency ag
+    WHERE ag.feed_id = r.feed_id AND ag.agency_id IS NOT DISTINCT FROM r.agency_id
+    LIMIT 1
+) a ON true;
+
 CREATE TABLE IF NOT EXISTS analysis.stop_passages (
     service_date     date        NOT NULL,
     trip_id          text        NOT NULL,
@@ -47,6 +61,8 @@ CREATE INDEX IF NOT EXISTS stop_passages_schedule_idx ON analysis.stop_passages 
 CREATE INDEX IF NOT EXISTS stop_passages_route_idx ON analysis.stop_passages (route_id, service_date);
 CREATE INDEX IF NOT EXISTS stop_passages_stop_idx ON analysis.stop_passages (stop_id, observed_ts);
 
+DROP VIEW IF EXISTS analysis.ets_standard_by_route;
+DROP VIEW IF EXISTS analysis.ets_standard_events;
 DROP VIEW IF EXISTS analysis.otp_by_route;
 DROP VIEW IF EXISTS analysis.stop_events;
 
@@ -61,13 +77,18 @@ SELECT p.*,
            WHEN p.delay_s < -60                   THEN 'early'
            WHEN p.delay_s > 300                   THEN 'late'
            ELSE 'on_time'
-       END AS status
+       END AS status,
+       coalesce(ra.is_ets, true) AS is_ets,
+       coalesce(ra.agency_name, ra.agency_id) AS agency
 FROM analysis.stop_passages p
+LEFT JOIN analysis.route_agency ra ON ra.feed_id = p.feed_id AND ra.route_id = p.route_id
 WHERE p.window_s <= 120
   AND p.event = 'departure';
 
 CREATE VIEW analysis.otp_by_route AS
 SELECT e.route_id,
+       bool_or(e.is_ets)                                                          AS is_ets,
+       max(e.agency)                                                              AS agency,
        max(r.route_short_name)                                                    AS route_short_name,
        max(r.route_long_name)                                                     AS route_long_name,
        count(*)                                                                   AS events,
@@ -104,6 +125,8 @@ DROP VIEW IF EXISTS analysis.headway_events;
 
 CREATE VIEW analysis.headway_events AS
 SELECT h.*,
+       coalesce(ra.is_ets, true)                                              AS is_ets,
+       coalesce(ra.agency_name, ra.agency_id)                                 AS agency,
        h.actual_headway_s::float8 / h.scheduled_headway_s                     AS headway_ratio,
        extract(hour FROM h.observed_ts AT TIME ZONE 'America/Edmonton')::int  AS local_hour,
        extract(isodow FROM h.schedule_date)::int                              AS iso_dow,
@@ -113,11 +136,15 @@ SELECT h.*,
            ELSE 'regular'
        END AS spacing
 FROM analysis.headways h
+LEFT JOIN analysis.feed_by_date f ON f.service_date = h.schedule_date
+LEFT JOIN analysis.route_agency ra ON ra.feed_id = f.feed_id AND ra.route_id = h.route_id
 WHERE NOT h.data_gap
   AND h.scheduled_headway_s BETWEEN 60 AND 900;
 
 CREATE VIEW analysis.bunching_by_route AS
 SELECT e.route_id,
+       bool_or(e.is_ets)                                                  AS is_ets,
+       max(e.agency)                                                      AS agency,
        max(r.route_short_name)                                            AS route_short_name,
        max(r.route_long_name)                                             AS route_long_name,
        count(*)                                                           AS events,
@@ -157,6 +184,8 @@ DROP VIEW IF EXISTS analysis.delivery_by_route;
 
 CREATE VIEW analysis.delivery_by_route AS
 SELECT s.route_id,
+       bool_or(coalesce(ra.is_ets, true))                                        AS is_ets,
+       max(coalesce(ra.agency_name, ra.agency_id))                               AS agency,
        max(r.route_short_name)                                                   AS route_short_name,
        max(r.route_long_name)                                                    AS route_long_name,
        count(*) FILTER (WHERE s.status NOT IN ('no_data', 'not_in_feed'))        AS trips_judged,
@@ -173,4 +202,45 @@ SELECT s.route_id,
 FROM analysis.trip_status s
 LEFT JOIN analysis.feed_by_date f ON f.service_date = s.schedule_date
 LEFT JOIN gtfs.routes r ON r.feed_id = f.feed_id AND r.route_id = s.route_id
+LEFT JOIN analysis.route_agency ra ON ra.feed_id = f.feed_id AND ra.route_id = s.route_id
 GROUP BY s.route_id;
+
+DROP VIEW IF EXISTS analysis.ets_standard_by_route;
+DROP VIEW IF EXISTS analysis.ets_standard_events;
+
+CREATE VIEW analysis.ets_standard_events AS
+SELECT p.*,
+       CASE
+           WHEN p.event = 'departure' THEN
+               CASE WHEN p.delay_s < 0 THEN 'early' WHEN p.delay_s > 180 THEN 'late' ELSE 'on_time' END
+           ELSE
+               CASE WHEN p.delay_s < -300 THEN 'early' WHEN p.delay_s > 60 THEN 'late' ELSE 'on_time' END
+       END AS ets_status,
+       CASE
+           WHEN p.event = 'departure' THEN p.delay_s BETWEEN -30 AND 210
+           ELSE p.delay_s BETWEEN -330 AND 90
+       END AS on_time_allowing_30s,
+       coalesce(ra.is_ets, true) AS is_ets,
+       coalesce(ra.agency_name, ra.agency_id) AS agency
+FROM analysis.stop_passages p
+LEFT JOIN analysis.route_agency ra ON ra.feed_id = p.feed_id AND ra.route_id = p.route_id
+WHERE p.window_s <= 120
+  AND p.delay_s IS NOT NULL
+  AND abs(p.delay_s) <= 3 * 3600
+  AND ((p.event = 'departure' AND p.timepoint = 1) OR p.event = 'arrival');
+
+CREATE VIEW analysis.ets_standard_by_route AS
+SELECT e.route_id,
+       bool_or(e.is_ets)                                                              AS is_ets,
+       max(e.agency)                                                                  AS agency,
+       max(r.route_short_name)                                                        AS route_short_name,
+       max(r.route_long_name)                                                         AS route_long_name,
+       count(*)                                                                       AS departures,
+       round(100.0 * avg((e.ets_status = 'on_time')::int), 1)                         AS pct_on_time,
+       round(100.0 * avg((e.ets_status = 'early')::int), 1)                           AS pct_early,
+       round(100.0 * avg((e.ets_status = 'late')::int), 1)                            AS pct_late,
+       round(100.0 * avg(e.on_time_allowing_30s::int), 1)                             AS pct_on_time_allowing_30s
+FROM analysis.ets_standard_events e
+LEFT JOIN gtfs.routes r ON r.feed_id = e.feed_id AND r.route_id = e.route_id
+WHERE e.event = 'departure'
+GROUP BY e.route_id;

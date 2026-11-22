@@ -4,6 +4,8 @@ How reliable is Edmonton Transit, really? This project collects Edmonton Transit
 
 **Status:** collecting data; Stage 2 (analysis) in progress. The Tableau dashboard comes next.
 
+**Scope:** the schedule and live feed include ETS's regional partners (Strathcona County, St. Albert, Spruce Grove, Fort Saskatchewan, Leduc and Beaumont). Routes are tagged by agency from `agency.txt`; headline figures cover ETS buses only, and partner agencies are reported separately. ETS's LRT lines are not in the live feed, so train service is not measured.
+
 ## Stage 1 — Collector
 
 A Python poller reads three ETS feeds and archives the static schedule:
@@ -57,6 +59,10 @@ python -m analysis.build --check
 ```
 
 `--check` reports the share of pings matched to the route, and compares inferred passage times with the departure times ETS itself reports for stops already passed.
+
+### ETS's own standard
+
+Alongside the industry-style window, `analysis.ets_standard_events` applies Edmonton's 2009 Transit Service Standards (policy C539): departures from timepoints 0 to 3 minutes late with no early departures, and final-stop arrivals 5 minutes early to 1 minute late, each against a 90% target. Because inferred times carry measurement error, every figure is also reported allowing 30 seconds either side. The current policy (C539A) does not define on-time performance, so this is the most recent published definition rather than ETS's present internal one.
 
 ### Bus bunching
 

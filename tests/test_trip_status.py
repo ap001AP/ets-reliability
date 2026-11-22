@@ -108,8 +108,8 @@ def test_check_report_includes_delivery(world, capsys):
     build.build_trip_status(world, DAY)
     build.check(world, DAY, DAY)
     out = capsys.readouterr().out
-    assert "Trip delivery by schedule date" in out
-    assert "Routes with the most missing trips" in out
+    assert "ETS trip delivery by schedule date" in out
+    assert "ETS routes with the most missing trips" in out
 
 
 def test_sql_steps_parse_in_order():

@@ -1,6 +1,6 @@
 # Data quality
 
-Generated 2026-11-21 23:48 CST by `python -m analysis.quality` from the collected data. Rerun it to refresh every figure.
+Generated 2026-11-22 03:22 CST by `python -m analysis.quality` from the collected data. Rerun it to refresh every figure.
 
 ## Feed availability
 
@@ -8,8 +8,8 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 
 | feed | first poll | last poll | expected polls | successful | failed | availability % | stale % | median feed age s | p90 feed age s |
 |---|---|---|---|---|---|---|---|---|---|
-| trip_updates | Fri Nov 20 14:51 | Sat Nov 21 23:48 | 3,954 | 3,928 | 25 | 99.3 | 0.0 | 16.0 | 27.6 |
-| vehicle_positions | Fri Nov 20 14:51 | Sat Nov 21 23:48 | 3,954 | 3,947 | 5 | 99.8 | 0.0 | 15.6 | 27.4 |
+| trip_updates | Fri Nov 20 14:51 | Sun Nov 22 03:21 | 4,381 | 4,355 | 25 | 99.4 | 0.0 | 16.3 | 27.2 |
+| vehicle_positions | Fri Nov 20 14:51 | Sun Nov 22 03:21 | 4,381 | 4,374 | 5 | 99.8 | 0.0 | 16.1 | 27.1 |
 
 ### Gaps longer than 90 s
 
@@ -23,7 +23,7 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 
 ### Vehicle positions
 
-952,065 vehicle pings stored.
+969,232 vehicle pings stored.
 
 | field | % filled |
 |---|---|
@@ -36,20 +36,20 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 | speed_mps | 63.8 |
 | current_stop_sequence | 100.0 |
 | stop_id | 100.0 |
-| current_status | 2.7 |
-| occupancy_status | 37.9 |
+| current_status | 2.8 |
+| occupancy_status | 37.7 |
 
 ### Trip updates and alerts
 
 | measure | value |
 |---|---|
-| trip-update rows stored (changes only) | 1,236,451 |
-| % rows with no trip_id | 12.7 |
-| % rows with an arrival time | 3.5 |
-| % rows with a departure time | 96.5 |
-| % rows with a departure delay | 94.0 |
+| trip-update rows stored (changes only) | 1,258,687 |
+| % rows with no trip_id | 12.9 |
+| % rows with an arrival time | 3.4 |
+| % rows with a departure time | 96.6 |
+| % rows with a departure delay | 93.9 |
 | trips announced as cancelled | 36 |
-| skipped-stop predictions | 4,905 |
+| skipped-stop predictions | 4,975 |
 | distinct service alerts | 81 |
 | alerts with no real end date (year 3000 placeholder) | 4 |
 | alert effects seen | DETOUR, NO_SERVICE, STOP_MOVED |
@@ -58,10 +58,22 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 
 | check | distinct IDs seen | found in schedule | % |
 |---|---|---|---|
-| vehicle trip_ids in schedule | 11,947 | 11,933 | 99.9 |
+| vehicle trip_ids in schedule | 12,064 | 12,048 | 99.9 |
 | vehicle route_ids in schedule | 230 | 226 | 98.3 |
-| vehicle stop_ids in schedule | 1,789 | 1,785 | 99.8 |
-| trip-update trip_ids in schedule | 12,122 | 12,107 | 99.9 |
+| vehicle stop_ids in schedule | 1,792 | 1,788 | 99.8 |
+| trip-update trip_ids in schedule | 12,759 | 12,743 | 99.9 |
+
+The schedule covers ETS and its regional partners. Headline figures in the analysis use ETS routes only; partner agencies are reported separately.
+
+| agency | counted as ETS | routes |
+|---|---|---|
+| Edmonton Transit Service | yes | 185 |
+| Strathcona County Transit | no | 25 |
+| St. Albert Transit | no | 24 |
+| Fort Saskatchewan Transit | no | 3 |
+| Leduc Transit | no | 2 |
+| Beaumont Transit | no | 1 |
+| Spruce Grove Transit | no | 1 |
 
 Scheduled routes that never appear in the live vehicle feed:
 
@@ -84,6 +96,28 @@ Inferred stop passage times compared with the departure times ETS reports for st
 |---|---|---|---|---|
 | 187,712 | 6.4 | -61.9 | 90.2 | 72.4 |
 
+The same comparison split by group. A group whose median sits far from the others would point to a bias in the method for that kind of stop or service:
+
+| split | group | compared | median | p10 | p90 | % within 60 s |
+|---|---|---|---|---|---|---|
+| period | other times | 145,088 | 5.9 | -57.4 | 82.8 | 74.9 |
+| period | weekday peak | 42,624 | 8.7 | -81.5 | 117.3 | 63.6 |
+| position | first stop | 5,007 | -26.1 | -96.2 | 7.7 | 74.3 |
+| position | other stops | 182,705 | 7.4 | -60.6 | 91.2 | 72.3 |
+| route type | express | 3,297 | -5.2 | -214.5 | 144.3 | 45.9 |
+| route type | regular | 184,415 | 6.5 | -60.4 | 89.3 | 72.8 |
+| timepoint | not a timepoint | 176,103 | 7.1 | -61.2 | 90.4 | 72.4 |
+| timepoint | timepoint | 11,609 | 1.0 | -73.0 | 85.8 | 72.3 |
+
+On-time performance of ETS routes under Edmonton's 2009 Transit Service Standards (policy C539): departures from timepoints 0 to 3 minutes late with no early departures, and arrivals 5 minutes early to 1 minute late, each against a 90% target. The current policy (C539A) does not define on-time performance. Because inferred times carry measurement error, the last column allows 30 s either side.
+
+| measure | events | % on time | % early | % late | % on time allowing 30 s |
+|---|---|---|---|---|---|
+| all timepoint departures (0 to +3 min) | 27,350 | 50.2 | 24.9 | 24.9 | 67.3 |
+| first-stop departures (0 to +3 min) | 9,519 | 60.0 | 23.8 | 16.2 | 78.0 |
+| other timepoint departures (0 to +3 min) | 17,831 | 45.0 | 25.5 | 29.5 | 61.6 |
+| final-stop arrivals (-5 to +1 min) | 1,350 | 41.9 | 4.1 | 54.1 | 47.3 |
+
 381,675 stop passages inferred; 98.3% fall within a crossing window of 120 s or less and count toward on-time performance.
 
 Scheduled trips by delivery status:
@@ -104,7 +138,7 @@ Scheduled trips by delivery status:
 
 **After-midnight trips labelled with the next day.** GTFS keeps late-night trips on the previous service day (times like 24:30:00), but the live feed labels them with the calendar date, so they were compared with a schedule 24 hours away. *Handled:* Each passage is compared with whichever of the labelled date or the day before fits the schedule (`schedule_date`).
 
-**Outdated time zone data in the database image.** The stock Postgres image placed Edmonton at UTC-7 while the live data and the host were at UTC-6, which would have shifted every schedule comparison by an hour. *Handled:* The database image now installs current tzdata, and the schedule loader checks Postgres against Python on every run.
+**Outdated time zone data in the database image.** The stock Postgres image placed Edmonton at UTC-7 while the live data and the host were at UTC-6, which would have shifted every schedule comparison by an hour. *Handled:* The database image now installs current tzdata, and the schedule loader checks Postgres against Python on every run. Python environments differ too (a fresh environment still placed Edmonton at UTC-7), so Python code and tests load the zone from the pinned `tzdata` package instead of the host's database.
 
 **Server closing idle connections.** ETS's server occasionally closes kept-alive connections; the next request failed instantly on both feeds. *Handled:* The collector retries connection errors (not HTTP errors) on a fresh connection.
 

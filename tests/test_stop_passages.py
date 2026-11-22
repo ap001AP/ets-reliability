@@ -145,7 +145,7 @@ def test_check_report_runs(world, capsys):
     shape_match.build_day(world, DAY)
     build.check(world, DAY, DAY)
     out = capsys.readouterr().out
-    assert "Network on-time performance" in out
+    assert "ETS on-time performance" in out
     assert "Cross-check against ETS" in out
 
 

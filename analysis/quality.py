@@ -8,6 +8,7 @@ from pathlib import Path
 
 import psycopg
 
+from analysis import build
 from collector import db
 from collector.config import Config
 from collector.tz import EDMONTON
@@ -196,6 +197,17 @@ def consistency(conn: psycopg.Connection) -> str:
         rows.append((label, seen, matched, round(100.0 * matched / seen, 1) if seen else None))
     text = md_table(["check", "distinct IDs seen", "found in schedule", "%"], rows)
 
+    if conn.execute("SELECT to_regclass('analysis.route_agency')").fetchone()[0]:
+        agencies = conn.execute(
+            """
+            SELECT coalesce(agency_name, agency_id, '(none)'), CASE WHEN is_ets THEN 'yes' ELSE 'no' END, count(*)
+            FROM analysis.route_agency WHERE feed_id = %s
+            GROUP BY 1, 2 ORDER BY count(*) DESC
+            """, feed).fetchall()
+        text += ("\n\nThe schedule covers ETS and its regional partners. Headline figures in the analysis use ETS "
+                 "routes only; partner agencies are reported separately.\n\n")
+        text += md_table(["agency", "counted as ETS", "routes"], agencies)
+
     absent = conn.execute(
         """
         SELECT r.route_short_name, r.route_long_name, count(*)
@@ -244,6 +256,21 @@ def validation(conn: psycopg.Connection) -> str:
             "passed (seconds, ours minus ETS):\n\n")
     text += md_table(["compared", "median", "p10", "p90", "% within 60 s"],
                      [(cross[0], float(cross[1] or 0), float(cross[2] or 0), float(cross[3] or 0), cross[4])])
+    span = conn.execute("SELECT min(service_date), max(service_date) FROM analysis.stop_passages").fetchone()
+    if span[0] is not None:
+        params = {"date_from": span[0], "date_to": span[1]}
+        text += ("\n\nThe same comparison split by group. A group whose median sits far from the others "
+                 "would point to a bias in the method for that kind of stop or service:\n\n")
+        text += md_table(build.CROSS_CHECK_COLS[:2] + ["compared", "median", "p10", "p90", "% within 60 s"],
+                         [(r[0], r[1], r[2], float(r[3]), float(r[4]), float(r[5]), r[6])
+                          for r in conn.execute(build.CROSS_CHECK_BREAKDOWN_SQL, params).fetchall()])
+        text += ("\n\nOn-time performance of ETS routes under Edmonton's 2009 Transit Service Standards (policy C539): departures "
+                 "from timepoints 0 to 3 minutes late with no early departures, and arrivals 5 minutes early to 1 "
+                 "minute late, each against a 90% target. The current policy (C539A) does not define on-time "
+                 "performance. Because inferred times carry measurement error, the last column allows 30 s either "
+                 "side.\n\n")
+        text += md_table(["measure", "events", "% on time", "% early", "% late", "% on time allowing 30 s"],
+                         conn.execute(build.ETS_STANDARD_SQL, params).fetchall())
     text += (f"\n\n{window[0]:,} stop passages inferred; {window[1]}% fall within a crossing window of 120 s "
              "or less and count toward on-time performance.")
     if status:

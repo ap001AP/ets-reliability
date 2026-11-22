@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS gtfs.feeds (
     feed_end_date    date
 );
 
+CREATE TABLE IF NOT EXISTS gtfs.agency (
+    feed_id          text NOT NULL REFERENCES gtfs.feeds (feed_id) ON DELETE CASCADE,
+    agency_id        text,
+    agency_name      text,
+    agency_url       text,
+    agency_timezone  text
+);
+CREATE INDEX IF NOT EXISTS agency_feed_idx ON gtfs.agency (feed_id, agency_id);
+
 CREATE TABLE IF NOT EXISTS gtfs.routes (
     feed_id           text NOT NULL REFERENCES gtfs.feeds (feed_id) ON DELETE CASCADE,
     route_id          text NOT NULL,
