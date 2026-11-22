@@ -1,10 +1,10 @@
 # Tableau extracts
 
-Generated 2026-11-22 16:33 by `python -m analysis.export` for service dates 2026-11-20 to 2026-11-21. Figures cover ETS buses only unless the file says otherwise. Percentages are included for convenience; when combining rows in Tableau, sum the counts and divide (for example SUM(n_on_time) / SUM(events)) so busy routes and quiet routes are weighted correctly.
+Generated 2026-11-22 16:44 by `python -m analysis.export` for service dates 2026-11-20 to 2026-11-22. Figures cover ETS buses only unless the file says otherwise. Percentages are included for convenience; when combining rows in Tableau, sum the counts and divide (for example SUM(n_on_time) / SUM(events)) so busy routes and quiet routes are weighted correctly.
 
 ## network_daily.csv
 
-One row per service day for ETS: on-time, ETS-standard, bunching and trip delivery. 2 rows.
+One row per service day for ETS: on-time, ETS-standard, bunching and trip delivery. 3 rows.
 
 | column | meaning |
 |---|---|
@@ -78,7 +78,7 @@ One row per ETS route over the export period, with every metric. 176 rows.
 
 ## route_hour.csv
 
-On-time counts by ETS route, day of week and hour, for heatmaps. 2,778 rows.
+On-time counts by ETS route, day of week and hour, for heatmaps. 3,823 rows.
 
 | column | meaning |
 |---|---|
@@ -141,7 +141,7 @@ Most-used route line per ETS route and direction, as ordered points. 109,673 row
 
 ## headways.csv
 
-Observed gaps between consecutive buses on frequent ETS service, at timepoints and transit centres (every stop with --all-headway-stops). 8,345 rows.
+Observed gaps between consecutive buses on frequent ETS service, at timepoints and transit centres (every stop with --all-headway-stops). 10,305 rows.
 
 | column | meaning |
 |---|---|
@@ -167,7 +167,7 @@ Observed gaps between consecutive buses on frequent ETS service, at timepoints a
 
 ## trips.csv
 
-Delivery status of every scheduled ETS trip. 18,052 rows.
+Delivery status of every scheduled ETS trip. 23,905 rows.
 
 | column | meaning |
 |---|---|
