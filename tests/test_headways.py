@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from analysis import build
 from gtfs_static import load
 from tests.test_gtfs_static import make_zip
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 DAY = date(2026, 11, 21)
 TRIPS = ["A", "B", "C", "D", "E", "F", "G"]
 OBSERVED = {"A": "08:00:30", "B": "08:13:00", "C": "08:14:00", "E": "08:40:10", "G": "09:00:20"}

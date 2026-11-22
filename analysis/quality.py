@@ -5,14 +5,13 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import psycopg
 
 from collector import db
 from collector.config import Config
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 ROOT = Path(__file__).resolve().parent.parent
 POLL_INTERVAL_S = 30
 GAP_THRESHOLD_S = 90
@@ -32,7 +31,8 @@ ISSUES = [
      "The stock Postgres image placed Edmonton at UTC-7 while the live data and the host were at UTC-6, which would "
      "have shifted every schedule comparison by an hour.",
      "The database image now installs current tzdata, and the schedule loader checks Postgres against Python on "
-     "every run."),
+     "every run. Python environments differ too (a fresh environment still placed Edmonton at UTC-7), so Python "
+     "code and tests load the zone from the pinned `tzdata` package instead of the host's database."),
     ("Server closing idle connections",
      "ETS's server occasionally closes kept-alive connections; the next request failed instantly on both feeds.",
      "The collector retries connection errors (not HTTP errors) on a fresh connection."),

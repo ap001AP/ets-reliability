@@ -13,12 +13,12 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import psycopg
 
 from collector import db
 from collector.config import Config
+from collector.tz import EDMONTON
 
 log = logging.getLogger("gtfs_static")
 
@@ -219,7 +219,7 @@ def timezone_check(conn: psycopg.Connection) -> bool:
     pg_offset = conn.execute(
         "SELECT extract(epoch FROM (now() AT TIME ZONE 'America/Edmonton') - (now() AT TIME ZONE 'UTC'))"
     ).fetchone()[0]
-    py_offset = datetime.now(ZoneInfo("America/Edmonton")).utcoffset().total_seconds()
+    py_offset = datetime.now(EDMONTON).utcoffset().total_seconds()
     ok = float(pg_offset) == py_offset
     print(f"Edmonton UTC offset: Postgres {float(pg_offset) / 3600:+.0f}h, Python {py_offset / 3600:+.0f}h"
           + ("" if ok else "  <-- MISMATCH: schedule times will be off; update the Postgres image"))

@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 
 import numpy as np
 
 from analysis import shape_match as sm
 from collector import db
 from collector.config import Config
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 
 
 def fmt_time(epoch: float | None) -> str:

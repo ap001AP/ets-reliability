@@ -7,13 +7,13 @@ import logging
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import psycopg
 
 from analysis import shape_match
 from collector import db
 from collector.config import Config
+from collector.tz import EDMONTON
 
 log = logging.getLogger("analysis")
 
@@ -21,7 +21,6 @@ ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "sql" / "analysis_schema.sql"
 HEADWAYS_PATH = ROOT / "sql" / "headways.sql"
 TRIP_STATUS_PATH = ROOT / "sql" / "trip_status.sql"
-EDMONTON = ZoneInfo("America/Edmonton")
 
 
 def build_headways(conn: psycopg.Connection, day: date) -> int:

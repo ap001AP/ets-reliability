@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from analysis import build, shape_match
 from gtfs_static import load
 from tests.test_gtfs_static import make_zip
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 DAY = date(2026, 11, 20)
 M_PER_DEG_LAT = shape_match.EARTH_R * 3.141592653589793 / 180
 LON = -113.5

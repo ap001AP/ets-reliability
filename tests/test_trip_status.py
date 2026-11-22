@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from analysis import build
 from gtfs_static import load
 from tests.test_gtfs_static import make_zip
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 DAY = date(2026, 11, 21)
 STARTS = {"A": "08:00", "B": "08:10", "C": "08:20", "D": "08:30", "E": "08:40", "F": "09:10", "G": "10:30"}
 

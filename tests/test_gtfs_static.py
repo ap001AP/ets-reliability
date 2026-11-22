@@ -5,13 +5,12 @@ from __future__ import annotations
 import zipfile
 from datetime import date, datetime, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from gtfs_static import load
+from collector.tz import EDMONTON
 
-EDMONTON = ZoneInfo("America/Edmonton")
 
 FILES = {
     "routes.txt": "﻿route_id,route_short_name,route_long_name,route_type,network_id\n"
@@ -124,3 +123,9 @@ def test_bad_value_rolls_back_whole_feed(gtfs, tmp_path):
 def test_timezone_check_agrees_with_python(gtfs, capsys):
     assert load.timezone_check(gtfs)
     assert "MISMATCH" not in capsys.readouterr().out
+
+
+def test_pinned_time_zone_matches_alberta_rules():
+    assert datetime(2026, 3, 1, 12, tzinfo=EDMONTON).utcoffset().total_seconds() == -7 * 3600
+    assert datetime(2026, 11, 20, 12, tzinfo=EDMONTON).utcoffset().total_seconds() == -6 * 3600
+    assert datetime(2027, 1, 15, 12, tzinfo=EDMONTON).utcoffset().total_seconds() == -6 * 3600
