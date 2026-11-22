@@ -1,0 +1,499 @@
+{
+  "size": [
+    1400,
+    1000
+  ],
+  "nav": [
+    {
+      "page": "Overview",
+      "x": 587,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    },
+    {
+      "page": "Routes",
+      "x": 721,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    },
+    {
+      "page": "When",
+      "x": 854,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    },
+    {
+      "page": "Where",
+      "x": 988,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    },
+    {
+      "page": "Stories",
+      "x": 1122,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    },
+    {
+      "page": "About",
+      "x": 1255,
+      "y": 32,
+      "w": 126,
+      "h": 58
+    }
+  ],
+  "pages": {
+    "Overview": [
+      {
+        "panel": "ON TIME",
+        "inner": [
+          56,
+          160,
+          219,
+          46
+        ],
+        "outer": [
+          40,
+          120,
+          251,
+          120
+        ]
+      },
+      {
+        "panel": "ETS STANDARD",
+        "inner": [
+          323,
+          160,
+          219,
+          46
+        ],
+        "outer": [
+          307,
+          120,
+          251,
+          120
+        ]
+      },
+      {
+        "panel": "BUNCHED",
+        "inner": [
+          590,
+          160,
+          219,
+          46
+        ],
+        "outer": [
+          574,
+          120,
+          251,
+          120
+        ]
+      },
+      {
+        "panel": "EXCESS WAIT",
+        "inner": [
+          857,
+          160,
+          219,
+          46
+        ],
+        "outer": [
+          841,
+          120,
+          251,
+          120
+        ]
+      },
+      {
+        "panel": "MISSING TRIPS",
+        "inner": [
+          1124,
+          160,
+          220,
+          46
+        ],
+        "outer": [
+          1108,
+          120,
+          252,
+          120
+        ]
+      },
+      {
+        "panel": "ON-TIME BY DAY",
+        "inner": [
+          56,
+          304,
+          837,
+          266
+        ],
+        "outer": [
+          40,
+          256,
+          869,
+          330
+        ]
+      },
+      {
+        "panel": "ABOUT THIS DATA",
+        "inner": [
+          941,
+          304,
+          403,
+          266
+        ],
+        "outer": [
+          925,
+          256,
+          435,
+          330
+        ]
+      },
+      {
+        "panel": "LEAST RELIABLE ROUTES",
+        "inner": [
+          56,
+          650,
+          620,
+          280
+        ],
+        "outer": [
+          40,
+          602,
+          652,
+          344
+        ]
+      },
+      {
+        "panel": "MOST BUNCHED ROUTES",
+        "inner": [
+          724,
+          650,
+          620,
+          280
+        ],
+        "outer": [
+          708,
+          602,
+          652,
+          344
+        ]
+      }
+    ],
+    "Routes": [
+      {
+        "panel": "FILTERS",
+        "inner": [
+          160,
+          130,
+          1184,
+          44
+        ],
+        "outer": [
+          40,
+          120,
+          1320,
+          64
+        ]
+      },
+      {
+        "panel": "ROUTE RANKING",
+        "inner": [
+          56,
+          248,
+          728,
+          682
+        ],
+        "outer": [
+          40,
+          200,
+          760,
+          746
+        ]
+      },
+      {
+        "panel": "ON TIME VS BUNCHING",
+        "inner": [
+          832,
+          248,
+          512,
+          356
+        ],
+        "outer": [
+          816,
+          200,
+          544,
+          420
+        ]
+      },
+      {
+        "panel": "SELECTED ROUTE",
+        "inner": [
+          832,
+          680,
+          512,
+          254
+        ],
+        "outer": [
+          816,
+          636,
+          544,
+          310
+        ]
+      }
+    ],
+    "When": [
+      {
+        "panel": "FILTERS",
+        "inner": [
+          160,
+          130,
+          1184,
+          44
+        ],
+        "outer": [
+          40,
+          120,
+          1320,
+          64
+        ]
+      },
+      {
+        "panel": "ON-TIME BY HOUR AND DAY",
+        "inner": [
+          56,
+          248,
+          1288,
+          376
+        ],
+        "outer": [
+          40,
+          200,
+          1320,
+          440
+        ]
+      },
+      {
+        "panel": "EARLY AND LATE BY HOUR",
+        "inner": [
+          56,
+          704,
+          837,
+          226
+        ],
+        "outer": [
+          40,
+          656,
+          869,
+          290
+        ]
+      },
+      {
+        "panel": "WEEKDAY VS WEEKEND",
+        "inner": [
+          941,
+          704,
+          403,
+          226
+        ],
+        "outer": [
+          925,
+          656,
+          435,
+          290
+        ]
+      }
+    ],
+    "Where": [
+      {
+        "panel": "DELAY MAP",
+        "inner": [
+          56,
+          168,
+          837,
+          762
+        ],
+        "outer": [
+          40,
+          120,
+          869,
+          826
+        ]
+      },
+      {
+        "panel": "ROUTE AND DIRECTION",
+        "inner": [
+          941,
+          164,
+          403,
+          94
+        ],
+        "outer": [
+          925,
+          120,
+          435,
+          150
+        ]
+      },
+      {
+        "panel": "DELAY ALONG THE ROUTE",
+        "inner": [
+          941,
+          334,
+          403,
+          376
+        ],
+        "outer": [
+          925,
+          286,
+          435,
+          440
+        ]
+      },
+      {
+        "panel": "LEGEND AND NOTES",
+        "inner": [
+          941,
+          790,
+          403,
+          140
+        ],
+        "outer": [
+          925,
+          742,
+          435,
+          204
+        ]
+      }
+    ],
+    "Stories": [
+      {
+        "panel": "ROUTE 56 \u00b7 CENTURY PARK",
+        "inner": [
+          56,
+          164,
+          403,
+          349
+        ],
+        "outer": [
+          40,
+          120,
+          435,
+          405
+        ]
+      },
+      {
+        "panel": "DEPARTURES FROM CENTURY PARK",
+        "inner": [
+          507,
+          168,
+          837,
+          341
+        ],
+        "outer": [
+          491,
+          120,
+          869,
+          405
+        ]
+      },
+      {
+        "panel": "ROUTE 127 \u00b7 A DELAY THAT CARRIED",
+        "inner": [
+          56,
+          585,
+          403,
+          349
+        ],
+        "outer": [
+          40,
+          541,
+          435,
+          405
+        ]
+      },
+      {
+        "panel": "DELAY BY TRIP",
+        "inner": [
+          507,
+          589,
+          837,
+          341
+        ],
+        "outer": [
+          491,
+          541,
+          869,
+          405
+        ]
+      }
+    ],
+    "About": [
+      {
+        "panel": "HOW IT'S MEASURED",
+        "inner": [
+          56,
+          168,
+          837,
+          236
+        ],
+        "outer": [
+          40,
+          120,
+          869,
+          300
+        ]
+      },
+      {
+        "panel": "VALIDATION",
+        "inner": [
+          941,
+          168,
+          403,
+          236
+        ],
+        "outer": [
+          925,
+          120,
+          435,
+          300
+        ]
+      },
+      {
+        "panel": "FEED UPTIME AND OUTAGES",
+        "inner": [
+          56,
+          484,
+          620,
+          446
+        ],
+        "outer": [
+          40,
+          436,
+          652,
+          510
+        ]
+      },
+      {
+        "panel": "ISSUES FOUND AND FIXED",
+        "inner": [
+          724,
+          484,
+          620,
+          446
+        ],
+        "outer": [
+          708,
+          436,
+          652,
+          510
+        ]
+      }
+    ]
+  }
+}
