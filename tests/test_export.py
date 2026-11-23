@@ -86,3 +86,42 @@ def test_all_headway_stops_option_runs(world, tmp_path):
     build.build_trip_status(world, DAY)
     results = export.export(world, tmp_path, DAY, DAY, all_headway_stops=True)
     assert any(ex.name == "headways.csv" for ex, _, _ in results)
+
+
+def test_network_summary_matches_daily_totals(exported):
+    out, _ = exported
+    (summary,) = read(out / "network_summary.csv")
+    daily = read(out / "network_daily.csv")
+    assert int(summary["events"]) == sum(int(d["events"]) for d in daily)
+    assert int(summary["trips_judged"]) == sum(int(d["trips_judged"]) for d in daily)
+    assert summary["date_from"] == str(DAY) == summary["date_to"]
+
+
+def test_map_layers_hold_lines_and_stops(exported):
+    out, _ = exported
+    rows = read(out / "map_layers.csv")
+    shapes = [r for r in rows if r["layer"] == "shape"]
+    stops = [r for r in rows if r["layer"] == "stop"]
+    assert len(shapes) == 3 and all(r["point_order"] and not r["stop_id"] for r in shapes)
+    assert stops and all(r["stop_id"] and r["events"] and not r["point_order"] for r in stops)
+    assert all(r["lat"] and r["lon"] for r in rows)
+
+
+def test_story_passages_limited_to_story_routes(world, tmp_path):
+    shape_match.build_day(world, DAY)
+    build.build_headways(world, DAY)
+    build.build_trip_status(world, DAY)
+    export.export(world, tmp_path / "none", DAY, DAY)
+    assert read(tmp_path / "none" / "story_passages.csv") == []
+    export.export(world, tmp_path / "four", DAY, DAY, story_routes=("004",))
+    rows = read(tmp_path / "four" / "story_passages.csv")
+    assert rows and {r["route_short_name"] for r in rows} == {"4"}
+    assert {r["event"] for r in rows} <= {"departure", "arrival"}
+    assert all(r["scheduled_local"] and r["observed_local"] for r in rows)
+
+
+def test_agencies_carry_counts(exported):
+    out, _ = exported
+    (row,) = read(out / "agencies.csv")
+    assert row["is_ets"] == "yes"
+    assert round(100 * int(row["n_on_time"]) / int(row["events"]), 1) == float(row["pct_on_time"])
