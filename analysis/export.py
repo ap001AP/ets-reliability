@@ -26,7 +26,9 @@ DAY_FIELDS = """
 ETS_ROUTES = """
 ets_routes AS (
     SELECT DISTINCT ON (r.route_id) r.route_id, r.route_short_name, r.route_long_name,
-           CASE WHEN r.route_short_name LIKE '%%X' THEN 'Express' ELSE 'Regular' END AS route_kind
+           CASE WHEN r.route_short_name LIKE '%%X' THEN 'Express'
+                WHEN r.route_short_name ~ '^6[0-9]{2}$' THEN 'School'
+                ELSE 'Regular' END AS route_kind
     FROM gtfs.routes r
     JOIN gtfs.feeds f ON f.feed_id = r.feed_id
     JOIN analysis.route_agency ra ON ra.feed_id = r.feed_id AND ra.route_id = r.route_id
@@ -491,7 +493,7 @@ COLUMN_DOCS = {
     "route_id": "GTFS route ID.",
     "route_short_name": "Public route number.",
     "route_long_name": "Route name.",
-    "route_kind": "Express (route number ends in X) or Regular.",
+    "route_kind": "Express (route number ends in X), School (600-series school specials) or Regular.",
     "iso_dow": "Day of week number, Monday = 1.",
     "local_hour": "Hour of the event in Edmonton time.",
     "direction_id": "GTFS direction (0 or 1).",

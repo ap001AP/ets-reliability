@@ -56,6 +56,19 @@ def test_routes_and_stop_route_have_coordinates(exported):
     assert [int(s["stop_order"]) for s in stops] == sorted(int(s["stop_order"]) for s in stops)
 
 
+def test_route_kind_labels_express_school_and_regular(world):
+    feed_id = world.execute("SELECT feed_id FROM gtfs.routes LIMIT 1").fetchone()[0]
+    for short in ("130X", "683", "650", "054", "060", "6", "6000"):
+        world.execute(
+            "INSERT INTO gtfs.routes (feed_id, route_id, route_short_name, route_long_name, route_type) "
+            "VALUES (%s, %s, %s, 'test', 3)", (feed_id, f"r{short}", short))
+    kinds = dict(world.execute(
+        f"WITH {export.ETS_ROUTES} SELECT route_short_name, route_kind FROM ets_routes").fetchall())
+    assert kinds["130X"] == "Express"
+    assert kinds["683"] == kinds["650"] == "School"
+    assert kinds["054"] == kinds["060"] == kinds["6"] == kinds["6000"] == kinds["4"] == "Regular"
+
+
 def test_route_shapes_are_ordered_paths(exported):
     out, _ = exported
     pts = read(out / "route_shapes.csv")
