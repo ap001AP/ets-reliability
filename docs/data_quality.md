@@ -1,6 +1,6 @@
 # Data quality
 
-Generated 2026-11-22 03:22 CST by `python -m analysis.quality` from the collected data. Rerun it to refresh every figure.
+Generated 2026-11-26 03:44 CST by `python -m analysis.quality` from the collected data. Rerun it to refresh every figure.
 
 ## Feed availability
 
@@ -8,8 +8,8 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 
 | feed | first poll | last poll | expected polls | successful | failed | availability % | stale % | median feed age s | p90 feed age s |
 |---|---|---|---|---|---|---|---|---|---|
-| trip_updates | Fri Nov 20 14:51 | Sun Nov 22 03:21 | 4,381 | 4,355 | 25 | 99.4 | 0.0 | 16.3 | 27.2 |
-| vehicle_positions | Fri Nov 20 14:51 | Sun Nov 22 03:21 | 4,381 | 4,374 | 5 | 99.8 | 0.0 | 16.1 | 27.1 |
+| trip_updates | Fri Nov 20 14:51 | Thu Nov 26 03:44 | 15,945 | 15,815 | 129 | 99.2 | 0.0 | 15.3 | 27.4 |
+| vehicle_positions | Fri Nov 20 14:51 | Thu Nov 26 03:44 | 15,945 | 15,931 | 12 | 99.9 | 0.0 | 14.8 | 27.1 |
 
 ### Gaps longer than 90 s
 
@@ -18,59 +18,71 @@ Polls run every 30 s. Availability is successful polls over expected polls betwe
 | trip_updates | Sat Nov 21 01:32 | Sat Nov 21 01:35 | 3.0 | HTTP 404, HTTP 500 |
 | vehicle_positions | Sat Nov 21 12:14 | Sat Nov 21 12:16 | 1.5 | connection dropped |
 | trip_updates | Sat Nov 21 16:36 | Sat Nov 21 16:42 | 6.0 | HTTP 404, HTTP 500 |
+| trip_updates | Sun Nov 22 11:44 | Sun Nov 22 11:52 | 8.0 | HTTP 404, HTTP 500 |
+| trip_updates | Mon Nov 23 03:42 | Mon Nov 23 03:49 | 7.0 | HTTP 404, HTTP 500 |
+| trip_updates | Mon Nov 23 21:28 | Mon Nov 23 21:30 | 1.5 | HTTP 500 |
+| trip_updates | Mon Nov 23 21:31 | Mon Nov 23 21:33 | 2.0 | HTTP 404, HTTP 500 |
+| trip_updates | Tue Nov 24 14:23 | Tue Nov 24 14:30 | 6.5 | HTTP 404, HTTP 500 |
+| trip_updates | Wed Nov 25 07:20 | Wed Nov 25 07:21 | 1.5 | HTTP 500 |
+| trip_updates | Wed Nov 25 07:22 | Wed Nov 25 07:23 | 1.5 | HTTP 500 |
+| trip_updates | Wed Nov 25 07:23 | Wed Nov 25 07:26 | 3.0 | HTTP 500 |
+| trip_updates | Wed Nov 25 07:26 | Wed Nov 25 07:37 | 10.5 | HTTP 404, HTTP 500 |
+| trip_updates | Wed Nov 25 07:37 | Wed Nov 25 07:39 | 2.0 | HTTP 404, HTTP 500 |
+| vehicle_positions | Wed Nov 25 07:54 | Wed Nov 25 07:56 | 2.0 | HTTP 500 |
+| trip_updates | Thu Nov 26 00:51 | Thu Nov 26 00:55 | 3.5 | HTTP 404, HTTP 500 |
 
 ## Field completeness
 
 ### Vehicle positions
 
-969,232 vehicle pings stored.
+4,287,818 vehicle pings stored.
 
 | field | % filled |
 |---|---|
 | trip_id | 100.0 |
 | route_id | 100.0 |
-| direction_id | 70.1 |
+| direction_id | 71.0 |
 | start_date | 100.0 |
 | latitude | 100.0 |
-| bearing | 90.1 |
-| speed_mps | 63.8 |
+| bearing | 89.8 |
+| speed_mps | 62.1 |
 | current_stop_sequence | 100.0 |
 | stop_id | 100.0 |
-| current_status | 2.8 |
-| occupancy_status | 37.7 |
+| current_status | 2.6 |
+| occupancy_status | 41.0 |
 
 ### Trip updates and alerts
 
 | measure | value |
 |---|---|
-| trip-update rows stored (changes only) | 1,258,687 |
-| % rows with no trip_id | 12.9 |
-| % rows with an arrival time | 3.4 |
-| % rows with a departure time | 96.6 |
-| % rows with a departure delay | 93.9 |
-| trips announced as cancelled | 36 |
-| skipped-stop predictions | 4,975 |
-| distinct service alerts | 81 |
-| alerts with no real end date (year 3000 placeholder) | 4 |
-| alert effects seen | DETOUR, NO_SERVICE, STOP_MOVED |
+| trip-update rows stored (changes only) | 5,187,884 |
+| % rows with no trip_id | 13.2 |
+| % rows with an arrival time | 3.9 |
+| % rows with a departure time | 96.2 |
+| % rows with a departure delay | 93.1 |
+| trips announced as cancelled | 67 |
+| skipped-stop predictions | 18,620 |
+| distinct service alerts | 100 |
+| alerts with no real end date (year 3000 placeholder) | 9 |
+| alert effects seen | DETOUR, MODIFIED_SERVICE, NO_SERVICE, STOP_MOVED |
 
 ## Schedule and live feed consistency
 
 | check | distinct IDs seen | found in schedule | % |
 |---|---|---|---|
-| vehicle trip_ids in schedule | 12,064 | 12,048 | 99.9 |
-| vehicle route_ids in schedule | 230 | 226 | 98.3 |
-| vehicle stop_ids in schedule | 1,792 | 1,788 | 99.8 |
-| trip-update trip_ids in schedule | 12,759 | 12,743 | 99.9 |
+| vehicle trip_ids in schedule | 24,772 | 24,739 | 99.9 |
+| vehicle route_ids in schedule | 238 | 234 | 98.3 |
+| vehicle stop_ids in schedule | 2,218 | 2,214 | 99.8 |
+| trip-update trip_ids in schedule | 24,863 | 24,828 | 99.9 |
 
 The schedule covers ETS and its regional partners. Headline figures in the analysis use ETS routes only; partner agencies are reported separately.
 
 | agency | counted as ETS | routes |
 |---|---|---|
-| Edmonton Transit Service | yes | 185 |
-| Strathcona County Transit | no | 25 |
+| Edmonton Transit Service | yes | 184 |
+| Strathcona County Transit | no | 26 |
 | St. Albert Transit | no | 24 |
-| Fort Saskatchewan Transit | no | 3 |
+| Fort Saskatchewan Transit | no | 2 |
 | Leduc Transit | no | 2 |
 | Beaumont Transit | no | 1 |
 | Spruce Grove Transit | no | 1 |
@@ -79,12 +91,14 @@ Scheduled routes that never appear in the live vehicle feed:
 
 | route | name | scheduled trips excluded |
 |---|---|---|
-| Valley | Valley Line | 351 |
-| Capital | Capital Line | 271 |
-| Metro | Metro Line | 228 |
-| 10 | Leduc - Nisku - Eia | 40 |
-| 540 | Beaumont To Edmonton | 26 |
-| 1 | Leduc - Nisku - Edmonton | 12 |
+| Valley | Valley Line | 1,176 |
+| Capital | Capital Line | 986 |
+| Metro | Metro Line | 723 |
+| 1 | Leduc - Nisku - Edmonton | 60 |
+| 540 | Beaumont to Edmonton | 60 |
+| 10 | Leduc - Nisku - EIA | 58 |
+| 10 | Leduc - Nisku - Eia | 58 |
+| 540 | Beaumont To Edmonton | 44 |
 | 671 | Alex Janvier - Wem | 2 |
 | 628 | Steele Heights - Cy Becker | 1 |
 
@@ -94,43 +108,43 @@ Inferred stop passage times compared with the departure times ETS reports for st
 
 | compared | median | p10 | p90 | % within 60 s |
 |---|---|---|---|---|
-| 187,712 | 6.4 | -61.9 | 90.2 | 72.4 |
+| 633,434 | 8.8 | -55.9 | 94.7 | 72.3 |
 
 The same comparison split by group. A group whose median sits far from the others would point to a bias in the method for that kind of stop or service:
 
 | split | group | compared | median | p10 | p90 | % within 60 s |
 |---|---|---|---|---|---|---|
-| period | other times | 145,088 | 5.9 | -57.4 | 82.8 | 74.9 |
-| period | weekday peak | 42,624 | 8.7 | -81.5 | 117.3 | 63.6 |
-| position | first stop | 5,007 | -26.1 | -96.2 | 7.7 | 74.3 |
-| position | other stops | 182,705 | 7.4 | -60.6 | 91.2 | 72.3 |
-| route type | express | 3,297 | -5.2 | -214.5 | 144.3 | 45.9 |
-| route type | regular | 184,415 | 6.5 | -60.4 | 89.3 | 72.8 |
-| timepoint | not a timepoint | 176,103 | 7.1 | -61.2 | 90.4 | 72.4 |
-| timepoint | timepoint | 11,609 | 1.0 | -73.0 | 85.8 | 72.3 |
+| period | other times | 429,554 | 7.0 | -54.3 | 82.8 | 75.3 |
+| period | weekday peak | 203,880 | 14.1 | -59.7 | 121.2 | 66.0 |
+| position | first stop | 18,003 | -25.8 | -96.9 | 7.7 | 75.3 |
+| position | other stops | 615,431 | 10.1 | -54.0 | 95.9 | 72.2 |
+| route type | express | 15,576 | 1.5 | -153.4 | 173.3 | 50.2 |
+| route type | regular | 617,858 | 9.0 | -54.3 | 93.4 | 72.9 |
+| timepoint | not a timepoint | 593,366 | 9.9 | -54.4 | 95.4 | 72.3 |
+| timepoint | timepoint | 40,068 | 0.1 | -75.3 | 82.0 | 72.9 |
 
 On-time performance of ETS routes under Edmonton's 2009 Transit Service Standards (policy C539): departures from timepoints 0 to 3 minutes late with no early departures, and arrivals 5 minutes early to 1 minute late, each against a 90% target. The current policy (C539A) does not define on-time performance. Because inferred times carry measurement error, the last column allows 30 s either side.
 
 | measure | events | % on time | % early | % late | % on time allowing 30 s |
 |---|---|---|---|---|---|
-| all timepoint departures (0 to +3 min) | 27,350 | 50.2 | 24.9 | 24.9 | 67.3 |
-| first-stop departures (0 to +3 min) | 9,519 | 60.0 | 23.8 | 16.2 | 78.0 |
-| other timepoint departures (0 to +3 min) | 17,831 | 45.0 | 25.5 | 29.5 | 61.6 |
-| final-stop arrivals (-5 to +1 min) | 1,350 | 41.9 | 4.1 | 54.1 | 47.3 |
+| all timepoint departures (0 to +3 min) | 92,139 | 51.3 | 30.5 | 18.2 | 70.5 |
+| first-stop departures (0 to +3 min) | 32,567 | 61.1 | 27.5 | 11.4 | 81.1 |
+| other timepoint departures (0 to +3 min) | 59,572 | 45.9 | 32.2 | 21.9 | 64.7 |
+| final-stop arrivals (-5 to +1 min) | 5,026 | 52.0 | 6.7 | 41.3 | 58.0 |
 
-381,675 stop passages inferred; 98.3% fall within a crossing window of 120 s or less and count toward on-time performance.
+1,286,008 stop passages inferred; 98.8% fall within a crossing window of 120 s or less and count toward on-time performance.
 
 Scheduled trips by delivery status:
 
 | status | trips |
 |---|---|
-| ran | 11,370 |
-| no_data | 7,040 |
-| not_in_feed | 931 |
-| partial | 327 |
-| missing | 175 |
-| tracked_not_matched | 145 |
-| cancelled | 25 |
+| ran | 39,584 |
+| no_data | 6,822 |
+| not_in_feed | 3,168 |
+| missing | 776 |
+| tracked_not_matched | 684 |
+| partial | 620 |
+| cancelled | 35 |
 
 ## Issues found and how they were handled
 

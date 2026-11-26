@@ -1,6 +1,6 @@
 # Tableau extracts
 
-Generated 2026-11-23 00:37 by `python -m analysis.export` for service dates 2026-11-20 to 2026-11-22. Figures cover ETS buses only unless the file says otherwise. Percentages are included for convenience; when combining rows in Tableau, sum the counts and divide (for example SUM(n_on_time) / SUM(events)) so busy routes and quiet routes are weighted correctly.
+Generated 2026-11-26 03:55 by `python -m analysis.export` for service dates 2026-11-20 to 2026-11-24. Figures cover ETS buses only unless the file says otherwise. Percentages are included for convenience; when combining rows in Tableau, sum the counts and divide (for example SUM(n_on_time) / SUM(events)) so busy routes and quiet routes are weighted correctly.
 
 ## network_summary.csv
 
@@ -38,7 +38,7 @@ One row for the whole export period for ETS; feeds the headline cards. 1 rows.
 
 ## network_daily.csv
 
-One row per service day for ETS: on-time, ETS-standard, bunching and trip delivery. 3 rows.
+One row per service day for ETS: on-time, ETS-standard, bunching and trip delivery. 5 rows.
 
 | column | meaning |
 |---|---|
@@ -75,14 +75,14 @@ One row per service day for ETS: on-time, ETS-standard, bunching and trip delive
 
 ## routes.csv
 
-One row per ETS route over the export period, with every metric. 176 rows.
+One row per ETS route over the export period, with every metric. 181 rows.
 
 | column | meaning |
 |---|---|
 | route_id | GTFS route ID. |
 | route_short_name | Public route number. |
 | route_long_name | Route name. |
-| route_kind | Express (route number ends in X) or Regular. |
+| route_kind | Express (route number ends in X), School (600-series school specials) or Regular. |
 | events | Departures counted toward on-time performance. |
 | n_on_time | Departures 1 minute early to 5 minutes late. |
 | n_early | Departures more than 1 minute early. |
@@ -112,13 +112,13 @@ One row per ETS route over the export period, with every metric. 176 rows.
 
 ## route_hour.csv
 
-On-time counts by ETS route, day of week and hour, for heatmaps. 3,823 rows.
+On-time counts by ETS route, day of week and hour, for heatmaps. 8,831 rows.
 
 | column | meaning |
 |---|---|
 | route_id | GTFS route ID. |
 | route_short_name | Public route number. |
-| route_kind | Express (route number ends in X) or Regular. |
+| route_kind | Express (route number ends in X), School (600-series school specials) or Regular. |
 | iso_dow | Day of week number, Monday = 1. |
 | day_name | Day of week. |
 | day_type | Weekday or Weekend. |
@@ -134,7 +134,7 @@ On-time counts by ETS route, day of week and hour, for heatmaps. 3,823 rows.
 
 ## stop_route.csv
 
-On-time counts and delay by ETS route, direction and stop, with coordinates. 8,514 rows.
+On-time counts and delay by ETS route, direction and stop, with coordinates. 10,121 rows.
 
 | column | meaning |
 |---|---|
@@ -161,7 +161,7 @@ On-time counts and delay by ETS route, direction and stop, with coordinates. 8,5
 
 ## route_shapes.csv
 
-Most-used route line per ETS route and direction, as ordered points. 109,673 rows.
+Most-used route line per ETS route and direction, as ordered points. 131,029 rows.
 
 | column | meaning |
 |---|---|
@@ -175,7 +175,7 @@ Most-used route line per ETS route and direction, as ordered points. 109,673 row
 
 ## headways.csv
 
-Observed gaps between consecutive buses on frequent ETS service, at timepoints and transit centres (every stop with --all-headway-stops). 10,305 rows.
+Observed gaps between consecutive buses on frequent ETS service, at timepoints and transit centres (every stop with --all-headway-stops). 32,071 rows.
 
 | column | meaning |
 |---|---|
@@ -201,7 +201,7 @@ Observed gaps between consecutive buses on frequent ETS service, at timepoints a
 
 ## map_layers.csv
 
-Route lines and stop delays for ETS routes in one table, for a two-layer map. 118,187 rows.
+Route lines and stop delays for ETS routes in one table, for a two-layer map. 141,150 rows.
 
 | column | meaning |
 |---|---|
@@ -226,7 +226,7 @@ Route lines and stop delays for ETS routes in one table, for a two-layer map. 11
 
 ## trips.csv
 
-Delivery status of every scheduled ETS trip. 23,905 rows.
+Delivery status of every scheduled ETS trip. 46,375 rows.
 
 | column | meaning |
 |---|---|
@@ -235,7 +235,7 @@ Delivery status of every scheduled ETS trip. 23,905 rows.
 | day_type | Weekday or Weekend. |
 | route_id | GTFS route ID. |
 | route_short_name | Public route number. |
-| route_kind | Express (route number ends in X) or Regular. |
+| route_kind | Express (route number ends in X), School (600-series school specials) or Regular. |
 | direction_id | GTFS direction (0 or 1). |
 | headsign | Destination sign for the direction. |
 | trip_id | GTFS trip ID. |
@@ -248,7 +248,7 @@ Delivery status of every scheduled ETS trip. 23,905 rows.
 
 ## story_passages.csv
 
-Every timed stop for the story routes (default 56 and 127). 15,175 rows.
+Every timed stop for the story routes (default 56 and 127). 33,779 rows.
 
 | column | meaning |
 |---|---|
